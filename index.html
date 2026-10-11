@@ -981,7 +981,7 @@ window.nfClear=()=>{const L=myN();if(!L.length)return;if(!confirm('Delete all no
 window.notifications=function(){const u=me(),a=isA(),L=myN().filter(n=>NF=='all'||(n.k||kindOf(n.text))==NF);
  const chips=['all',...Object.keys(KIND)].map(k=>`<button class="btn sm ${NF==k?'pri':''}" onclick="nfSet('${k}')">${k=='all'?'All':KIND[k][1]}</button>`).join(' ');
  const html=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><h1 style="font-size:2rem;margin:0">Notifications</h1>${L.length?`<button class="btn sm dng" onclick="nfClear()">${ic('trash')}<span>Clear all</span></button>`:''}</div><div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap">${chips}</div><div class="card">${L.map(n=>{const k=n.k||kindOf(n.text),KD=KIND[k]||KIND.info;return `<div class="nf"><div class="nfi">${ic(NI[k]||'bell')}</div><div class="nfb"><b>${KD[1]}</b><p>${esc(n.text)}</p><span class="mu">${ft(n.t)}</span></div><button class="ib2" onclick="nfDel('${n.id}')" aria-label="Delete">${ic('trash')}</button></div>`}).join('')||'<p class="mu" style="margin:0">Nothing here yet.</p>'}</div>`;
- if(a)DB.adminSeen=now();else if(u)u.seen=now();save();return html};
+ const mx=Math.max(0,...DB.notifs.filter(n=>a?n.to=='admin':(u&&(n.to==u.id||n.to=='all'))).map(n=>n.t||0));if(a){if((DB.adminSeen||0)<mx){DB.adminSeen=mx;save()}}else if(u&&(u.seen||0)<mx){u.seen=mx;save()}return html};
 /* profile: quick options + language */
 const _pf=window.profile;window.profile=function(){const h=_pf(),u=me(),g=u.g||{},t=day(),open=g.l!==t,s=g.l>=t-1?g.s||0:0,act=u.plan&&u.planExp>now()?DB.plans.find(x=>x.id==u.plan):null,i=h.indexOf('<div class="tabs"'),rest=i>=0?h.slice(i):'',un=unread();
  const tile=(href,ico,col,l,sub,oc)=>`<${oc?'button onclick="'+oc+'"':'a href="'+href+'"'} class="pt"><span class="pti" style="background:${col}">${ic(ico)}</span><span class="ptt"><b>${l}</b><small>${sub}</small></span>${ic('chev')}</${oc?'button':'a'}>`;
@@ -1027,14 +1027,19 @@ render(true)})();
 <script>
 /* PixelRise cloud sync (Firebase Auth + Realtime Database) */
 (()=>{
-if(!window.firebase){console.warn('Firebase SDK not loaded');return}
+if(!window.firebase){console.warn('Firebase SDK not loaded');
+ const nf=async()=>{toast('Cloud service could not load. Check your internet, turn off ad-blocker or VPN, then reload the page.')};
+ window.doLogin=window.doSignup=window.doAdmin=nf;
+ window.adminOut=async()=>{go('#/home')};window.logout=async()=>{SS={};saveS();go('#/home')};
+ return}
 const ADMIN='iMAk3kmGDzXWb9y9wFojcw5tGIi2',DOM='@pixelrise.app',J=JSON.stringify;
 firebase.initializeApp({apiKey:"AIzaSyCoWsDLdryzQX6IbgJxtYiFbt4qD_FY5CU",authDomain:"pixelrise-4f6ef.firebaseapp.com",databaseURL:"https://pixelrise-4f6ef-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"pixelrise-4f6ef",storageBucket:"pixelrise-4f6ef.firebasestorage.app",messagingSenderId:"344272987070",appId:"1:344272987070:web:c2afe9e5eea75449c04fef"});
 const au=firebase.auth(),fdb=firebase.database(),R=p=>(p&&p!=='/')?fdb.ref(p):fdb.ref();
-let LAST={},PULL=false,uidv=null,SIGNING=false,offs=[];
+let LAST={},PULL=false,uidv=null,SIGNING=false,offs=[],FAIL={},RT=null;
 const ar=x=>Array.isArray(x)?x:Object.values(x||{}),fl=o=>Object.values(o||{}).flatMap(x=>Object.values(x||{}));
 const local=()=>{const r=J(DB);window.LR=r;LS.set(K,r)};
-const redraw=()=>{const a=document.activeElement;if(!a||!['INPUT','TEXTAREA','SELECT'].includes(a.tagName))render(true)};
+let RDT=null,PD=0;addEventListener('pointerdown',()=>{PD=Date.now()},true);
+const redraw=()=>{clearTimeout(RDT);RDT=setTimeout(function f(){const a=document.activeElement;if(a&&['INPUT','TEXTAREA','SELECT'].includes(a.tagName))return;if(Date.now()-PD<700){RDT=setTimeout(f,300);return}render(true)},120)};
 function paths(){const P={},ad=AD;
  if(ad){const s={...DB.set};delete s.adminId;delete s.adminCode;P.settings=s;['plans','packs','store','pdfs','coupons','tools'].forEach(k=>P['catalog/'+k]=DB[k])}
  DB.users.forEach(u=>{if(!ad&&u.id!==uidv)return;const b='users/'+u.id+'/';
@@ -1049,8 +1054,9 @@ function push(){const c=au.currentUser;if(!c||!READY)return;const P=paths(),U={}
  for(const k in P){const v=J(P[k]);if(LAST[k]!==v){U[k]=JSON.parse(v);LAST[k]=v}}
  if(AD)for(const k in LAST)if(!(k in P)){U[k]=null;delete LAST[k]}
  if(Object.keys(U).length){const ks=Object.keys(U),soft=k=>!AD&&/^notifs\//.test(k);
- const settle=bad=>{bad.forEach(b=>{if(soft(b[0]))LAST[b[0]]=J(P[b[0]]);else delete LAST[b[0]]});const hard=bad.filter(b=>!soft(b[0]));if(hard.length&&Date.now()-(window.__sf||0)>20000){window.__sf=Date.now();toast('Cloud sync failed ('+hard[0][0].split('/').slice(0,3).join('/')+'): '+(hard[0][1].code||hard[0][1].message))}};
- try{R().update(U).catch(async()=>{const bad=[];await Promise.all(ks.map(k=>R(k).set(U[k]).catch(x=>bad.push([k,x]))));settle(bad)})}catch(e){ks.forEach(k=>delete LAST[k]);console.error(e)}}}
+ const settle=bad=>{bad.forEach(b=>{if(soft(b[0]))LAST[b[0]]=J(P[b[0]]);else{delete LAST[b[0]];FAIL[b[0]]=J(P[b[0]])}});const hard=bad.filter(b=>!soft(b[0]));if(hard.length){clearTimeout(RT);RT=setTimeout(()=>{if(Object.keys(FAIL).length)push()},30000);if(Date.now()-(window.__sf||0)>20000){window.__sf=Date.now();const c=hard[0][1].code||hard[0][1].message;toast('Cloud sync failed ('+hard[0][0].split('/').slice(0,3).join('/')+'): '+c+'. Your changes are kept on this device and will retry.'+(c==='PERMISSION_DENIED'?' Firebase rules are blocking this write.':''))}}};
+ const ok=l=>l.forEach(k=>delete FAIL[k]);
+ try{R().update(U).then(()=>ok(ks),async()=>{const bad=[];await Promise.all(ks.map(k=>R(k).set(U[k]).then(()=>ok([k]),x=>bad.push([k,x]))));settle(bad)})}catch(e){ks.forEach(k=>delete LAST[k]);console.error(e)}}}
 let READY=false,rs;const ready=new Promise(r=>rs=r);let gs=false,gc=false;
 const gate=()=>{if(gs&&gc){READY=true;rs()}};
 const pull=f=>{PULL=true;try{f()}catch(e){console.error(e)}PULL=false;mark();local();redraw()};
@@ -1061,6 +1067,7 @@ window.R=R;window.ar=ar;window.mark=mark;window.local=local;
 R('settings').on('value',s=>{const v=s.val();if(v)pull(()=>Object.assign(DB.set,v));gs=true;gate()},()=>{gs=true;gate()});
 R('catalog').on('value',s=>{const v=s.val();if(v)pull(()=>{['plans','packs','store','pdfs','coupons'].forEach(k=>{if(v[k]!==undefined)DB[k]=ar(v[k])});if(v.tools)DB.tools=Object.assign(DB.tools||{},v.tools)});gc=true;gate()},()=>{gc=true;gate()});
 const on=(p,f)=>{const r=R(p);r.on('value',s=>pull(()=>f(s.val())),e=>{LOADED=true;console.warn(p,e.message);try{render(true)}catch(x){}});offs.push(()=>r.off())};
+const keepFail=u=>{const b='users/'+u.id+'/';for(const k in FAIL){if(k.indexOf(b)!==0||FAIL[k]==null)continue;try{const f=k.slice(b.length),v=JSON.parse(FAIL[k]);if(f==='credits')u.credits=Number(v)||0;else if(f==='ledger')u.ledger=ar(v);else if(f==='hist')u.hist=ar(v);else if(f==='unlocked')u.unlocked=ar(v);else if(f==='growth')u.g=v||{};else if(f==='profile'&&v){u.pref=v.pref||u.pref;u.tasks=ar(v.tasks);u.seen=v.seen||u.seen;u.exam=v.exam||u.exam}}catch(x){}}return u};
 const mk=(id,v)=>{const p=v.profile||{};return{id,name:p.name||'',username:p.username||'',phone:p.phone||'',pass:'',exam:p.exam||'',credits:v.credits||0,plan:v.plan||'',planExp:v.planExp||0,joined:p.joined||0,pref:p.pref||{theme:'light',goal:4},tasks:ar(p.tasks),hist:ar(v.hist),unlocked:ar(v.unlocked),ledger:ar(v.ledger),seen:p.seen||0,banned:!!v.banned,g:v.growth||{}}};
 function detach(){offs.forEach(f=>f());offs=[]}
 async function seed(){const s=await R('catalog').once('value');if(s.exists())return;const P=paths(),U={};for(const k in P)if(k=='settings'||k.startsWith('catalog/')){U[k]=JSON.parse(J(P[k]));LAST[k]=J(P[k])}R('').update(U).catch(e=>toast('Cloud seed failed: '+(e.code||e.message)))}
@@ -1070,7 +1077,7 @@ async function attachAdmin(){detach();await ready;await seed();let OR=null,SH={}
  on('orders',v=>{OR=v;pays()});on('shots',v=>{SH=v||{};pays()});
  on('notifs',v=>{DB.notifs=fl(v).sort((a,b)=>b.t-a.t)})}
 async function attachUser(){detach();await ready;const id=uidv;
- on('users/'+id,v=>{LOADED=true;if(v){DB.users=[mk(id,v)];if(v.banned){toast('This account is suspended.');au.signOut()}}});
+ on('users/'+id,v=>{LOADED=true;if(v){DB.users=[keepFail(mk(id,v))];if(v.banned){toast('This account is suspended.');au.signOut()}}});
  on('orders/'+id,v=>{DB.pays=Object.values(v||{}).sort((a,b)=>b.t-a.t)});
  let N1={},N2={};const nn=()=>{DB.notifs=[...Object.values(N1||{}),...Object.values(N2||{})].sort((a,b)=>b.t-a.t)};
  on('notifs/'+id,v=>{N1=v;nn()});on('notifs/all',v=>{N2=v;nn()})}
@@ -1154,7 +1161,7 @@ window.doLogin=async function(){const el=document.getElementById('lu'),x=((el&&e
  await _li();setTimeout(chk,2500);const u=me();
  if(u&&!isA()){if(b&&String(u.username).toLowerCase()!==b){toast('This device is linked to another account. Log in with that account.');return doOut()}bind(u.username)}};
 let SG=false;
-async function chk(){const c=firebase.auth().currentUser;if(!c||SG||isA()||me())return;try{const s=await firebase.database().ref('users/'+c.uid+'/profile').once('value');if(s.exists()||me()||SG)return;LS.set('pr_acct','');LS.set(DK,'');try{document.cookie='pr_acct=;max-age=0;path=/'}catch(e){}SS={};saveS();await firebase.auth().signOut();toast('This account was removed. Please sign up again.');go('#/signup')}catch(e){console.warn('account check',e.message)}}
+async function chk(){if(!window.firebase)return;const c=firebase.auth().currentUser;if(!c||SG||isA())return;try{const ct=Date.parse((c.metadata&&c.metadata.creationTime)||'');if(ct&&Date.now()-ct<180000)return;const s=await firebase.database().ref('users/'+c.uid+'/profile').once('value');if(s.exists()||SG)return;LS.set('pr_acct','');LS.set(DK,'');try{document.cookie='pr_acct=;max-age=0;path=/'}catch(e){}SS={};saveS();await firebase.auth().signOut();toast('This account was removed. Please sign up again.');go('#/signup')}catch(e){console.warn('account check',e.message)}}
 setInterval(chk,8000);setTimeout(chk,5000);
 const _su=window.doSignup;
 window.doSignup=async function(){SG=true;try{return await _dsu()}finally{SG=false}};
