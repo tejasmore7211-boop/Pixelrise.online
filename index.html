@@ -353,8 +353,8 @@ function giveCr(id){const u=DB.users.find(x=>x.id==id);modal('Credits and plan: 
 function editU(id){const u=DB.users.find(x=>x.id==id);modal('Edit member',[['name','Name','text',u.name],['username','Username','text',u.username],['phone','Mobile','text',u.phone],['pass','Password','text',u.pass]],o=>{Object.assign(u,o);done('Member updated')})}
 const banU=id=>{const u=DB.users.find(x=>x.id==id);u.banned=!u.banned;done('Updated')};
 const delU=id=>{if(confirm('Delete this member?')){DB.users=DB.users.filter(x=>x.id!=id);done('Deleted')}};
-const del=(k,id)=>{if(confirm('Delete this item?')){DB[k]=DB[k].filter(x=>x.id!=id);done('Deleted')}};
-function editPlan(id){const p=DB.plans.find(x=>x.id==id)||{id:uid(),name:'',price:0,credits:0,days:30,badge:'',perks:[],pdfs:[],free:[]};modal(id?'Edit plan':'Add plan',[['name','Plan name','text',p.name],['cat','Plan for','select',p.cat||'cr',[['cr','Creators'],['re','Real estate'],['bk','Banking'],['nu','Nurses'],['dr','Doctors'],['st','BSc Nursing students']]],['price','Price (INR)','number',p.price],['credits','Credits included','number',p.credits],['days','Validity (days)','number',p.days],['badge','Badge text','text',p.badge],['perks','Benefits (one per line)','textarea',p.perks.join('\n')],['pdfs','PDF guides included','multi',p.pdfs,DB.pdfs.map(d=>[d.id,d.title])],['free','Tools unlimited on this plan','multi',p.free||[],TOOLS.map(t=>[t[0],t[1]])]],o=>{o.perks=o.perks.split('\n').map(s=>s.trim()).filter(Boolean);{let t=DB.plans.find(x=>x.id==p.id);if(!t)DB.plans.push(t=p);Object.assign(t,o)};done('Plan saved')})}
+const del=(k,id)=>{const run=()=>{DB[k]=(DB[k]||[]).filter(x=>String(x.id)!==String(id));done('Deleted')};if(window.askD)askD('Delete this item?',run);else if(confirm('Delete this item?'))run()};
+function editPlan(id){const p=DB.plans.find(x=>x.id==id)||{id:uid(),name:'',price:0,credits:0,days:30,badge:'',perks:[],pdfs:[],free:[]};modal(id?'Edit plan':'Add plan',[['name','Plan name','text',p.name],['cat','Plan for','select',p.cat||'cr',[['cr','Creators'],['re','Real estate'],['bk','Banking'],['nu','Nurses'],['dr','Doctors'],['st','BSc Nursing students']]],['price','Price (INR)','number',p.price],['credits','Credits included','number',p.credits],['days','Validity (days)','number',p.days],['badge','Badge text','text',p.badge],['perks','Benefits (one per line)','textarea',(p.perks||[]).join('\n')],['pdfs','PDF guides included','multi',p.pdfs,DB.pdfs.map(d=>[d.id,d.title])],['free','Tools unlimited on this plan','multi',p.free||[],TOOLS.map(t=>[t[0],t[1]])]],o=>{o.perks=o.perks.split('\n').map(s=>s.trim()).filter(Boolean);{let t=DB.plans.find(x=>x.id==p.id);if(!t)DB.plans.push(t=p);Object.assign(t,o)};done('Plan saved')})}
 function editStore(id){const p=DB.store.find(x=>x.id==id)||{id:uid(),title:'',desc:'',price:0,credits:0,pdfs:[]};modal(id?'Edit bundle':'Add bundle',[['title','Bundle name','text',p.title],['desc','Description','textarea',p.desc],['price','Price (INR)','number',p.price],['credits','Bonus Pixel Credits','number',p.credits],['cat','Bundle section','select',p.cat||'cr',[['cr','Creators'],['re','Real estate'],['bk','Banking'],['nu','Nurses'],['dr','Doctors'],['st','BSc Nursing students']]],['pdfs','PDFs included','multi',p.pdfs,DB.pdfs.map(d=>[d.id,d.title])]],o=>{{let t=DB.store.find(x=>x.id==p.id);if(!t)DB.store.push(t=p);Object.assign(t,o)};done('Bundle saved')})}
 function editPack(id){const p=DB.packs.find(x=>x.id==id)||{id:uid(),name:'',credits:0,price:0};modal('Credit pack',[['name','Pack name','text',p.name],['credits','Credits','number',p.credits],['price','Price (INR)','number',p.price]],o=>{{let t=DB.packs.find(x=>x.id==p.id);if(!t)DB.packs.push(t=p);Object.assign(t,o)};done('Pack saved')})}
 function editPdf(id){const p=DB.pdfs.find(x=>x.id==id)||{id:uid(),title:'',cost:3,body:''};modal('Worksheet',[['title','Title','text',p.title],['cost','Credits to unlock','number',p.cost],['body','Content (each line becomes a paragraph)','textarea',p.body]],o=>{{let t=DB.pdfs.find(x=>x.id==p.id);if(!t)DB.pdfs.push(t=p);Object.assign(t,o)};done('Worksheet saved')})}
@@ -1067,7 +1067,7 @@ save=()=>{local();if(!PULL)push()};
 window.R=R;window.ar=ar;window.mark=mark;window.local=local;
 /* public data: settings + catalog (everyone) */
 R('settings').on('value',s=>{const v=s.val();if(v)pull(()=>Object.assign(DB.set,v));gs=true;gate()},()=>{gs=true;gate()});
-R('catalog').on('value',s=>{const v=s.val();if(v)pull(()=>{['plans','packs','store','pdfs','coupons'].forEach(k=>{if(v[k]!==undefined)DB[k]=ar(v[k])});if(v.tools)DB.tools=Object.assign(DB.tools||{},v.tools)});gc=true;gate()},()=>{gc=true;gate()});
+R('catalog').on('value',s=>{const v=s.val();if(v)pull(()=>{['plans','packs','store','pdfs','coupons'].forEach(k=>{if(v[k]!==undefined)DB[k]=ar(v[k])});if(v.tools)DB.tools=Object.assign(DB.tools||{},v.tools);window.normCat&&normCat()});gc=true;gate()},()=>{gc=true;gate()});
 const on=(p,f)=>{const r=R(p);r.on('value',s=>pull(()=>f(s.val())),e=>{LOADED=true;console.warn(p,e.message);try{render(true)}catch(x){}});offs.push(()=>r.off())};
 const keepFail=u=>{const b='users/'+u.id+'/';for(const k in FAIL){if(k.indexOf(b)!==0||FAIL[k]==null)continue;try{const f=k.slice(b.length),v=JSON.parse(FAIL[k]);if(f==='credits')u.credits=Number(v)||0;else if(f==='ledger')u.ledger=ar(v);else if(f==='hist')u.hist=ar(v);else if(f==='unlocked')u.unlocked=ar(v);else if(f==='growth')u.g=v||{};else if(f==='profile'&&v){u.pref=v.pref||u.pref;u.tasks=ar(v.tasks);u.seen=v.seen||u.seen;u.exam=v.exam||u.exam}}catch(x){}}return u};
 const mk=(id,v)=>{const p=v.profile||{};return{id,name:p.name||'',username:p.username||'',phone:p.phone||'',pass:'',exam:p.exam||'',credits:v.credits||0,plan:v.plan||'',planExp:v.planExp||0,joined:p.joined||0,pref:p.pref||{theme:'light',goal:4},tasks:ar(p.tasks),hist:ar(v.hist),unlocked:ar(v.unlocked),ledger:ar(v.ledger),seen:p.seen||0,banned:!!v.banned,g:v.growth||{}}};
@@ -1328,6 +1328,25 @@ const _rp=window.render;window.render=function(keep){const pg=String(ROUTE).slic
   if(keep===true&&document.getElementById('plx')){if(s===sig)return;if(Date.now()-tt<1500){setTimeout(()=>{if(String(ROUTE).slice(1).split('/')[0]==='plans')window.render(true)},1600);return}}
   sig=s}
  return _rp.apply(this,arguments)};
+})();
+</script>
+<style id="modalfix-css">
+.mb{z-index:2147483600!important;display:flex!important;align-items:flex-start;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px}
+.mb>.mc{margin:auto;max-height:none!important;overflow:visible!important}
+.mb>img{margin:auto;max-width:100%}
+#cardov,#cfm,#cfm2,#ts{z-index:2147483600!important}
+.mc .row{position:sticky;bottom:-22px;background:var(--card);padding:12px 0 2px;margin-top:6px}
+.mc .row .btn{min-height:46px;flex:1;justify-content:center}
+</style>
+<script id="modalfix-js">
+/* Fix: edit window hidden under header + new plans losing empty lists after cloud sync */
+(function(){
+window.normCat=function(){try{(DB.plans||[]).forEach(p=>{if(!Array.isArray(p.perks))p.perks=p.perks?Object.values(p.perks):[];if(!Array.isArray(p.pdfs))p.pdfs=p.pdfs?Object.values(p.pdfs):[];if(!Array.isArray(p.free))p.free=p.free?Object.values(p.free):[]});(DB.store||[]).forEach(b=>{if(!Array.isArray(b.pdfs))b.pdfs=b.pdfs?Object.values(b.pdfs):[]})}catch(e){}};
+window.askD=function(msg,fn){const x=document.getElementById('cfm2');if(x)x.remove();const o=document.createElement('div');o.id='cfm2';o.style.cssText='position:fixed;inset:0;z-index:2147483600;background:#000a;display:grid;place-items:center;padding:16px';
+ o.innerHTML='<div style="background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:18px;padding:22px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px #0008"><h3 style="margin:0 0 14px">'+msg+'</h3><div style="display:flex;gap:10px"><button type="button" class="btn" style="flex:1;min-height:46px;justify-content:center" id="cfn2">Cancel</button><button type="button" class="btn dng" style="flex:1;min-height:46px;justify-content:center" id="cfy2">Delete</button></div></div>';
+ document.body.appendChild(o);document.getElementById('cfn2').onclick=()=>o.remove();document.getElementById('cfy2').onclick=()=>{o.remove();fn()}};
+normCat();
+const _rq=window.render;window.render=function(){normCat();return _rq.apply(this,arguments)};
 })();
 </script>
 </body></html>
