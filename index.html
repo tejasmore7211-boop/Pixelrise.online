@@ -1250,7 +1250,7 @@ setTimeout(()=>{RDY=true},6000);
 const _r=window.render;window.render=function(){if(RDY&&isA()&&!DB.set.nuV)nuMig();return _r.apply(this,arguments)};
 })();
 </script>
-<style id="tapfix">header{z-index:45!important}header a,header button,#app a.btn,#app .row a,#app nav a{position:relative;z-index:3;pointer-events:auto;touch-action:manipulation;min-height:38px}nav a{display:inline-flex;align-items:center}</style>
+<style id="tapfix">header{z-index:2147483000!important}header a,header button,#app a.btn,#app .row a,#app nav a{position:relative;z-index:3;pointer-events:auto;touch-action:manipulation;min-height:38px}nav a{display:inline-flex;align-items:center}</style>
 <script id="store-sections">
 /* ===== Pro plans + Store: own section for every category ===== */
 (function(){
@@ -1261,6 +1261,73 @@ const bcard=x=>`<div class="card"><span class="tag">Premium bundle</span><h3 sty
 const chips=()=>`<div class="row" style="margin:10px 0 4px">${PSEC.map(s=>`<button class="btn sm" onclick="var e=document.getElementById('sec_${s[0]}');e&&e.scrollIntoView({behavior:'smooth'})">${LB[s[0]]}</button>`).join('')}</div>`;
 window.plans=function(){const u=me(),a=actPlan(u);return `<h1 style="font-size:2rem">Pro plans and store</h1>${a?`<p class="appr"><b>${esc(a.name)}</b> is unlocked till ${fd(u.planExp)}. <a href="#/myplans" style="text-decoration:underline">Open My plans</a></p>`:''}<p class="mu">Every section has its own monthly plans and one-time bundles. One plan is active at a time.</p>${chips()}${PSEC.map(s=>{const k=s[0],P=DB.plans.filter(p=>(p.cat||'cr')==k),B=DB.store.filter(x=>catOf(x)==k);return P.length||B.length?`<section id="sec_${k}" style="margin-top:28px;scroll-margin-top:80px"><h2 style="font-size:1.6rem">${LB[k]}</h2>${P.length?`<h3>Pro plans</h3><div class="grid g3">${P.map(p=>pcard(p,a,u)).join('')}</div>`:''}${B.length?`<h3 style="margin-top:18px">${LB[k]} store: bundles</h3><div class="grid g3">${B.map(bcard).join('')}</div>`:''}</section>`:''}).join('')}<div style="margin-top:24px">${toolTable()}</div>`};
 window.store=function(){return `<h1 style="font-size:2rem">Premium store</h1><p class="mu">One-time bundles of PDF guides with bonus Pixel Credits, grouped by section.</p>${PSEC.map(s=>{const B=DB.store.filter(x=>catOf(x)==s[0]);return B.length?`<h2 style="margin-top:24px">${LB[s[0]]}</h2><div class="grid g3">${B.map(bcard).join('')}</div>`:''}).join('')||'<div class="card mu">New bundles are coming soon.</div>'}`};
+})();
+</script>
+<script id="pdf-lock">
+/* ===== PDF library: only for plan or bundle owners ===== */
+(function(){
+const has=(u,id)=>{const a=actPlan(u);return !!((a&&a.pdfs.includes(id))||(u.unlocked||[]).includes(id))};
+window.getPdf=function(id){const u=me(),d=DB.pdfs.find(x=>x.id==id);if(!d)return;if(!has(u,id)){toast('This PDF is only for members whose plan or bundle includes it.');go('#/plans');return}dlPdf(id);render(true)};
+window.worksheets=function(){const u=me(),own=DB.pdfs.filter(d=>has(u,d.id)),lock=DB.pdfs.filter(d=>!has(u,d.id)),c=(d,f)=>`<div class="card" style="${f?'border:2px solid var(--ok)':''}"><span class="tag" style="${f?'background:#12805C22;color:var(--ok)':''}">${f?'&#10003; Unlocked':'Locked'}</span><h3 style="margin-top:8px">${esc(d.title)}</h3><p class="mu">${f?'Included in your plan or bundle':'Included in selected Pro plans and bundles'}</p>${f?`<button class="btn pri" onclick="getPdf('${d.id}')">${ic('dl')} Download PDF</button>`:`<a class="btn pri" href="#/plans">See plans and bundles</a>`}</div>`;return `<h1 style="font-size:2rem">PDF library</h1><p class="mu">PDFs unlock only with a Pro plan or store bundle that includes them.</p>${own.length?`<h2>Your unlocked PDFs</h2><div class="grid g2">${own.map(d=>c(d,1)).join('')}</div>`:''}${lock.length?`<h2 style="margin-top:22px">Locked PDFs</h2><div class="grid g2">${lock.map(d=>c(d,0)).join('')}</div>`:''}`};
+})();
+</script>
+<style id="menufix">@media(max-width:860px){body.nv header{max-height:100vh;max-height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}}</style>
+<script id="menufix-js">addEventListener("hashchange",function(){document.body.classList.remove("nv")});document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("nav a");if(a)document.body.classList.remove("nv")},true);</script>
+<style id="plans-v2-css">
+#app .pl-hero{background:linear-gradient(135deg,#0A1633,#1B3A9E);color:#fff;border-radius:20px;padding:22px;margin-bottom:16px}
+#app .pl-hero h1{margin:0 0 6px;font-size:clamp(1.6rem,5vw,2.4rem)}#app .pl-hero p{margin:0;color:#C0CEF7}
+#app .pl-act{display:inline-flex;gap:8px;align-items:center;margin-top:12px;background:#12805C;color:#fff;border-radius:99px;padding:7px 14px;font-weight:700;font-size:.85rem}
+#app .pl-note{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--sky);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:.92rem}
+#app .pl-tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+#app .pl-tab{flex:none;scroll-snap-align:start;min-height:46px;padding:0 18px;border-radius:99px;border:1.5px solid var(--ln);background:var(--card);color:var(--tx);font:700 .95rem var(--f);cursor:pointer;display:inline-flex;align-items:center;gap:8px;touch-action:manipulation}
+#app .pl-tab.on{background:var(--bl);border-color:var(--bl);color:#fff}
+#app .pl-tab i{font-style:normal;font-size:.75rem;background:#00000018;border-radius:99px;padding:1px 8px}
+#app .pl-seg{display:inline-flex;background:var(--sky);border-radius:12px;padding:4px;gap:4px;margin:2px 0 18px}
+#app .pl-seg button{min-height:42px;padding:0 16px;border:0;border-radius:9px;background:none;color:var(--mu);font:700 .9rem var(--f);cursor:pointer;touch-action:manipulation}
+#app .pl-seg button.on{background:var(--card);color:var(--tx);box-shadow:0 2px 8px #0a163326}
+#app .pl-h{font-size:1.25rem;margin:22px 0 14px}
+#app .pl-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+#app .pl-card{position:relative;display:flex;flex-direction:column;background:var(--card);border:1.5px solid var(--ln);border-radius:18px;padding:24px 20px 20px;box-shadow:0 6px 20px #0a163312}
+#app .pl-card.best{border-color:var(--bl);box-shadow:0 10px 30px #2b59ff2e}#app .pl-card.on{border-color:var(--ok);box-shadow:0 10px 30px #12805c2e}
+#app .pl-rib{position:absolute;top:-12px;right:16px;background:var(--am);color:var(--ink);font-weight:800;font-size:.72rem;padding:4px 12px;border-radius:99px}
+#app .pl-nm{font-size:1.3rem;margin:10px 0 6px}
+#app .pl-pr{font-size:2.3rem;font-weight:800;letter-spacing:-.02em;line-height:1.1}#app .pl-pr small{font-size:1rem;font-weight:500;color:var(--mu)}
+#app .pl-sub{color:var(--mu);font-size:.85rem;min-height:1.3em;margin:2px 0 10px}
+#app .pl-cr{display:flex;gap:8px;align-items:center;background:var(--sky);border-radius:10px;padding:9px 12px;font-weight:700;font-size:.93rem}
+#app .pl-ul{list-style:none;padding:0;margin:14px 0 18px;flex:1}
+#app .pl-ul li{display:flex;gap:9px;align-items:flex-start;padding:7px 0;font-size:.93rem;border-bottom:1px dashed var(--ln)}#app .pl-ul li:last-child{border-bottom:0}
+#app .pl-ul svg.i{flex:none;margin-top:3px;color:var(--ok);width:16px;height:16px}
+#app .pl-cta{width:100%;justify-content:center;min-height:50px;font-size:1rem;position:relative;z-index:3;touch-action:manipulation}
+#app .pl-cta2{width:100%;justify-content:center;min-height:44px;margin-bottom:8px}
+#app .pl-empty{padding:26px;text-align:center;color:var(--mu);border:1.5px dashed var(--ln);border-radius:16px}
+</style>
+<script id="plans-v2">
+/* ===== Pro plans v2: clean tabs, big tap targets, no random re-render ===== */
+(function(){
+const LB={cr:'Creators',re:'Real estate',bk:'Banking',nu:'Nurses',dr:'Doctors',st:'BSc Nursing students'},BC={s1:'cr',s2:'cr',s3:'cr',s4:'re',s5:'bk',s6:'nu',s7:'st',s8:'dr',s9:'nu'},catOf=x=>x.cat||BC[x.id]||'cr';
+const PL={cat:'',bill:'all'},isY=p=>p.days>=300,unit=p=>isY(p)?'year':p.days>=28?'month':p.days+' days';
+const cats=()=>Object.keys(LB).filter(k=>DB.plans.some(p=>(p.cat||'cr')==k)||DB.store.some(x=>catOf(x)==k));
+function pcard(p,a,u){const on=a&&a.id==p.id,best=isY(p)&&!on,perks=(p.perks||[]).slice(),ok=ic('check');
+ perks.push((p.pdfs||[]).length+' PDF guides included');if((p.free||[]).length)perks.push(p.free.length+' tools unlimited');
+ const go_="event.stopPropagation();go(this.getAttribute('href'));return false";
+ return `<div class="pl-card ${on?'on':best?'best':''}">${on?'':best?'<span class="pl-rib">BEST VALUE</span>':''}<span class="tag" style="align-self:flex-start;${on?'background:#12805C22;color:var(--ok)':''}">${on?'&#10003; Active plan':esc(p.badge||'Pro plan')}</span><h3 class="pl-nm">${esc(p.name)}</h3><div class="pl-pr">&#8377;${p.price}<small> / ${unit(p)}</small></div><div class="pl-sub">${isY(p)?'Just &#8377;'+Math.round(p.price/12)+' per month':'&nbsp;'}</div><div class="pl-cr">${cr(18)} ${p.credits} Pixel Credits</div><ul class="pl-ul">${perks.map(x=>`<li>${ok}<span>${esc(x)}</span></li>`).join('')}</ul>${on?`<p class="appr" style="margin:0 0 10px;font-weight:600">Active till ${fd(u.planExp)}</p><a class="btn pl-cta2" href="#/myplans" onclick="${go_}">View in My plans</a>`:''}<a class="btn pri pl-cta" href="#/checkout/plan/${p.id}" onclick="${go_}">${on?'Extend plan':'Choose '+esc(p.name)}</a></div>`}
+function bcard(x){const go_="event.stopPropagation();go(this.getAttribute('href'));return false",L=(x.pdfs||[]).map(d=>(DB.pdfs.find(y=>y.id==d)||{title:'Removed item'}).title);if(x.credits)L.push(x.credits+' bonus Pixel Credits');
+ return `<div class="pl-card"><span class="tag" style="align-self:flex-start">One-time bundle</span><h3 class="pl-nm">${esc(x.title)}</h3><p class="mu" style="margin:0 0 6px">${esc(x.desc||'')}</p><div class="pl-pr">&#8377;${x.price}</div><ul class="pl-ul">${L.map(t=>`<li>${ic('check')}<span>${esc(t)}</span></li>`).join('')}</ul><a class="btn pri pl-cta" href="#/checkout/store/${x.id}" onclick="${go_}">Buy bundle</a></div>`}
+function body(){const u=me(),a=actPlan(u),C=cats();if(!C.length)return '<div class="pl-empty">No plans available yet.</div>';if(!C.includes(PL.cat))PL.cat=C[0];const k=PL.cat;
+ let P=DB.plans.filter(p=>(p.cat||'cr')==k);if(PL.bill=='month')P=P.filter(p=>!isY(p));if(PL.bill=='year')P=P.filter(isY);const B=DB.store.filter(x=>catOf(x)==k);
+ const tabs=C.map(c=>`<button type="button" class="pl-tab ${c==k?'on':''}" onclick="plSet('cat','${c}')">${LB[c]}<i>${DB.plans.filter(p=>(p.cat||'cr')==c).length}</i></button>`).join('');
+ const seg=[['all','All plans'],['month','Monthly'],['year','Yearly']].map(s=>`<button type="button" class="${PL.bill==s[0]?'on':''}" onclick="plSet('bill','${s[0]}')">${s[1]}</button>`).join('');
+ return `<div class="pl-tabs">${tabs}</div><div class="pl-seg">${seg}</div><h2 class="pl-h" style="margin-top:0">${LB[k]} Pro plans</h2>${P.length?`<div class="pl-grid">${P.map(p=>pcard(p,a,u)).join('')}</div>`:`<div class="pl-empty">No ${PL.bill=='year'?'yearly':'monthly'} plan in this section yet. Try All plans.</div>`}${B.length?`<h2 class="pl-h">${LB[k]} store: one-time bundles</h2><div class="pl-grid">${B.map(bcard).join('')}</div>`:''}`}
+window.plSet=function(k,v){PL[k]=v;const x=document.getElementById('plx');if(x)x.innerHTML=body()};
+window.plans=function(){const u=me(),a=actPlan(u);
+ return `<div class="pl-hero"><h1>Pro plans and store</h1><p>Pick your section, then choose a plan. One plan is active at a time.</p>${a?`<span class="pl-act">&#10003; ${esc(a.name)} active till ${fd(u.planExp)}</span>`:''}</div>${u||isA()?'':`<div class="pl-note"><span>Log in first to buy a plan.</span><span class="row"><a class="btn sm pri" href="#/login">Log in</a>${hasAcct()?'':'<a class="btn sm" href="#/signup">Sign up</a>'}</span></div>`}<div id="plx">${body()}</div><div style="margin-top:24px">${toolTable()}</div>`};
+/* stop needless full re-renders on this page (they cancel taps) */
+let sig='',tt=0;['touchstart','touchmove'].forEach(e=>addEventListener(e,()=>{tt=Date.now()},{passive:true,capture:true}));
+const _rp=window.render;window.render=function(keep){const pg=String(ROUTE).slice(1).split('/')[0];
+ if(pg==='plans'){let s='';try{const u=me();s=JSON.stringify([DB.plans,DB.store,DB.pdfs.length,u&&[u.id,u.plan,u.planExp,u.credits],!!isA(),unread(),DB.set.ann,DB.set.annOn])}catch(e){s=String(Math.random())}
+  if(keep===true&&document.getElementById('plx')){if(s===sig)return;if(Date.now()-tt<1500){setTimeout(()=>{if(String(ROUTE).slice(1).split('/')[0]==='plans')window.render(true)},1600);return}}
+  sig=s}
+ return _rp.apply(this,arguments)};
 })();
 </script>
 </body></html>
